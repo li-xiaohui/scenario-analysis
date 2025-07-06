@@ -1,0 +1,426 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scenario Analysis Report</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        .example {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .query {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .result {
+            background-color: #f1f8e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .scenario {
+            background-color: #fff3e0;
+            border: 1px solid #ffb74d;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .scenario h4 {
+            color: #e65100;
+            margin-top: 0;
+        }
+        .scenario p {
+            margin: 8px 0;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        .scenario .description {
+            margin: 8px 0;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+        .scenario .description h1, .scenario .description h2, .scenario .description h3, 
+        .scenario .description h4, .scenario .description h5, .scenario .description h6 {
+            margin: 10px 0 5px 0;
+            color: #e65100;
+        }
+        .scenario .description ul, .scenario .description ol {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+        .scenario .description li {
+            margin: 3px 0;
+        }
+        .scenario .description code {
+            background-color: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .scenario .description pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .impact-category {
+            background-color: #f3e5f5;
+            border: 1px solid #ba68c8;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .impact-category h4 {
+            color: #7b1fa2;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .impact-detail {
+            background-color: #fafafa;
+            border-left: 3px solid #9c27b0;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 3px;
+        }
+        .impact-detail strong {
+            color: #6a1b9a;
+        }
+        .asset-comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+        }
+        .asset-comparison-table th, .asset-comparison-table td {
+            border: 1px solid #bdbdbd;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .asset-comparison-table th {
+            background-color: #e3f2fd;
+            color: #2c3e50;
+        }
+        .asset-comparison-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .timestamp {
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+            margin-top: 30px;
+        }
+        .no-scenarios {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            color: #2e7d32;
+        }
+        .citations {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 40px;
+        }
+        .citations h3 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .citation-item {
+            background-color: white;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 12px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .citation-number {
+            background-color: #3498db;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            text-align: center;
+            line-height: 20px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        .citation-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .citation-source {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        .citation-url {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .citation-url:hover {
+            text-decoration: underline;
+        }
+        sup.cite-ref {
+            font-size: 0.8em;
+            color: #1976d2;
+            margin-left: 2px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Scenario Analysis Report</h1>
+        <div class="timestamp">Generated on: 2025-07-06 22:05:12</div>
+
+        <div class="example">
+            <h2>Example 1</h2>
+            <div class="query">Query: What are the possible scenarios for tariffs after the tariff pause expires on July 9?</div>
+            <div class="result">
+                <strong>Scenarios Required:</strong> True
+            </div>
+
+            <div class="result">
+                <strong>Top Scenarios Found:</strong> 2
+            </div>
+
+            <div class="scenario">
+                <h4>Scenario 1</h4>
+                <p><strong>Name:</strong> Full Reimposition with Exceptions</p>
+                <div class="description"><strong>Description:</strong><br><p>Description: The U.S. decides to reimpose tariffs on the majority of countries as the tariff pause expires, but with exceptions for a few strategic partners or those who have made significant concessions. This scenario sees a return to the April tariff rates or even higher for most countries, but with carve-outs for key allies or those who have agreed to U.S. demands, such as rescinding digital services taxes or opening markets to U.S. goods.</p><sup class="cite-ref"><a href="#cite-1">1</a></sup></div>
+            </div>
+
+            <div class="scenario">
+                <h4>Scenario 2</h4>
+                <p><strong>Name:</strong> Tariff Escalation and Retaliation</p>
+                <div class="description"><strong>Description:</strong><br><p>Description: Upon the expiration of the tariff pause, the U.S. not only reimposes tariffs but also increases them significantly on all countries that have not reached a trade agreement. This aggressive move leads to immediate retaliation from several major trading partners, escalating into a full-blown trade war. Global markets react negatively, with increased volatility and uncertainty.</p><sup class="cite-ref"><a href="#cite-2">2</a></sup></div>
+            </div>
+
+            <h3>Side-by-Side Asset Impact Comparison</h3>
+            <table class="asset-comparison-table">
+                <tr>
+                    <th>Asset Class</th>
+                    <th>Scenario 1</th>
+                    <th>Scenario 2</th>
+                </tr>
+
+                <tr>
+                    <td>Public Equities</td>
+                    <td>Public equity markets will react based on the specific outcomes of Full Reimposition with Exceptions. Key factors include market confidence, investor sentiment, and the speed of policy implementation.<sup class="cite-ref"><a href="#cite-3">3</a></sup></td>
+                    <td>Sharp sell-off in public equities, especially in multinational and trade-dependent sectors. Market indices may enter correction territory. Heightened volatility.<sup class="cite-ref"><a href="#cite-4">4</a></sup></td>
+                </tr>
+
+                <tr>
+                    <td>Private Equities</td>
+                    <td>Private equity valuations and deal activity will depend on the scope and duration of Full Reimposition with Exceptions. Cross-border deals and fundraising may be most affected.<sup class="cite-ref"><a href="#cite-5">5</a></sup></td>
+                    <td>Private equity deals slow dramatically. Valuations drop for companies exposed to global supply chains. Fundraising and exits become more challenging.<sup class="cite-ref"><a href="#cite-6">6</a></sup></td>
+                </tr>
+
+                <tr>
+                    <td>Fixed Income</td>
+                    <td>Bond yields and credit spreads will be influenced by Full Reimposition with Exceptions. Companies with high trade exposure may see increased borrowing costs.<sup class="cite-ref"><a href="#cite-7">7</a></sup></td>
+                    <td>Bond markets face stress. Yields rise, especially for lower-rated issuers. Credit risk increases. Safe-haven flows to government bonds.<sup class="cite-ref"><a href="#cite-8">8</a></sup></td>
+                </tr>
+
+                <tr>
+                    <td>Commodities</td>
+                    <td>Commodity prices will respond to supply/demand changes under Full Reimposition with Exceptions. Sectors most exposed to tariffs or trade barriers will be most volatile.<sup class="cite-ref"><a href="#cite-8">8</a></sup></td>
+                    <td>Commodity prices spike due to supply disruptions and uncertainty. Energy and metals most affected.<sup class="cite-ref"><a href="#cite-8">8</a></sup></td>
+                </tr>
+
+                <tr>
+                    <td>Real Estate</td>
+                    <td>Real estate impacts for Full Reimposition with Exceptions will depend on changes in supply chains, industrial demand, and investor sentiment.<sup class="cite-ref"><a href="#cite-8">8</a></sup></td>
+                    <td>Industrial and logistics real estate faces disruption. Commercial property values in export hubs may decline. Residential real estate less affected initially.<sup class="cite-ref"><a href="#cite-8">8</a></sup></td>
+                </tr>
+
+            </table>
+
+            <div class="result">
+                <strong>Causal Relationships Identified:</strong> 3 types
+            </div>
+
+        </div>
+
+        <div class="citations">
+            <h3>Sources and Citations</h3>
+    
+            <div class="citation-item" id="cite-1">
+                <span class="citation-number">1</span>
+                <div class="citation-title">Tariff Uncertainty Is Likely to Continue Through Late 2025</div>
+                <div class="citation-source">The US administration has made contrasting comments regarding whether reciprocal tariffs implemented under the International Emergency Economic Powers Act (IEEPA) will be fully resolved on July 9. Within the likely scenarios, the most plausible outcome is a pragmatic mix of tariff pauses for countries that are undertaking positively viewed negotiations, alongside tariff increases for those countries where the administration believes trade negotiations have stalled. [...] Many, if not most, trade negotiations will continue after July 9, with tariff pauses likely for most trading partners. Nonetheless, following Trump’s statements that he will not extend the July 9 deadline and plans on implementing higher tariffs after that date, S&amp;P Global Market Intelligence believes countries or territories will likely fall into four categories: [...] Irrespective of what the US administration decides regarding the outcome of the IEEPA-related tariff decisions on July 9, there will likely be a range of other tariff-related events during the remainder of 2025.
+
+The US will likely undertake tariff actions driven by specific policy demands, most recently shown by Canada rescinding its Digital Services Tax after Trump’s threat to end talks.</div>
+                <a href="https://www.spglobal.com/market-intelligence/en/news-insights/research/tariff-uncertainty-likely-continues-through-2025" class="citation-url" target="_blank">https://www.spglobal.com/market-intelligence/en/news-insights/research/tariff-uncertainty-likely-continues-through-2025</a>
+            </div>
+            
+            <div class="citation-item" id="cite-2">
+                <span class="citation-number">2</span>
+                <div class="citation-title">Less Than A Week Is Left Before Trump&#x27;s Big Tariff Deadline</div>
+                <div class="citation-source">Trump has recommended sending letters to countries, telling them how much tariffs will be.
+Saul Loeb / AFP via Getty Images
+
+Close
+
+### Key Takeaways
+
+   President Donald Trump&#x27;s 90-day pause on the &quot;Liberation Day&quot; tariffs expires on July 9.
+
+   When the deadline passes, the U.S. could re-impose &quot;reciprocal&quot; tariffs on numerous countries, which would be a major drag on the economy.</div>
+                <a href="https://www.investopedia.com/one-week-left-before-trump-s-tariff-deadline-expires-11762538" class="citation-url" target="_blank">https://www.investopedia.com/one-week-left-before-trump-s-tariff-deadline-expires-11762538</a>
+            </div>
+            
+            <div class="citation-item" id="cite-3">
+                <span class="citation-number">3</span>
+                <div class="citation-title">Trump&#x27;s tariff pause is set to expire, threatening a trade war flare-up</div>
+                <div class="citation-source">Trump tariffs
+
+Trump&#x27;s tariff pause is set to expire, threatening a trade war flare-up
+=======================================================================
+
+Duties on imports from dozens of countries would jump if the 90-day pause imposed in April expires July 9 as scheduled.
+
+Image 1: Donald Trump speaks into a microphone at a podium and holds a sign titled &quot;reciprocal tariffs&quot; with a list of countries and percentages</div>
+                <a href="https://www.nbcnews.com/business/economy/trump-tariff-pause-expires-date-trade-deals-countries-what-to-know-rcna216402" class="citation-url" target="_blank">https://www.nbcnews.com/business/economy/trump-tariff-pause-expires-date-trade-deals-countries-what-to-know-rcna216402</a>
+            </div>
+            
+            <div class="citation-item" id="cite-4">
+                <span class="citation-number">4</span>
+                <div class="citation-title">Trump&#x27;s &#x27;reciprocal&#x27; tariff pause is about to expire. Cue the confusion</div>
+                <div class="citation-source">Leading up to July 9, Trump administration officials threatened to simply return to April tariff rates, or possibly even higher levies. They also floated the possibility of extending the pause for countries “negotiating in good faith,” without defining what that means or which it includes.
+
+It’s not clear where Trump, who will get the ultimate say, stands. [...] The 90-day deadline President Donald Trump set for countries to make trade deals with the United States or risk substantially higher tariffs is just days away. What will happen after that’s reached at 12:01 a.m. ET on July 9 is anyone’s best guess.
+
+The stakes could not be higher, with the entire global economy on notice. [...] “They’ll range in value from maybe 60% or 70% tariffs to 10% and 20% tariffs,” Trump said.
+
+For many countries, such rates would deal an even bigger economic blow compared to the levels Trump announced in April. But countries may have the opportunity to still negotiate, given Trump said most new rates won’t take effect until August 1.
+
+America’s evolving pain tolerance for higher tariffs
+----------------------------------------------------
+
+What do you think?Join 1 other in the comments</div>
+                <a href="https://www.cnn.com/2025/07/06/economy/reciprocal-tariff-pause-expires" class="citation-url" target="_blank">https://www.cnn.com/2025/07/06/economy/reciprocal-tariff-pause-expires</a>
+            </div>
+            
+            <div class="citation-item" id="cite-5">
+                <span class="citation-number">5</span>
+                <div class="citation-title">Status of U.S. Bilateral Trade Negotiations as the July 9 Deadline ...</div>
+                <div class="citation-source">deals so far. As such, following the July 9 deadline, the administration could reimpose country-specific reciprocal tariffs on a substantial number of trading partners that have not yet reached a deal with the U.S. Reimposition of these tariffs could significantly increase costs to import goods into the U.S., disrupt supply chains and impact all sectors of the economy. [...] The Trump Administration announced a 90-day pause on nearly all of the country-specific reciprocal tariffs on April 9, 2025, reducing these tariffs to the 10 percent baseline while the U.S. and its trading partners negotiate new bilateral trade agreements. This pause on the country-specific reciprocal tariffs is set to expire on July 9, 2025, after which these tariffs will go back into effect unless otherwise modified.</div>
+                <a href="https://www.hklaw.com/en/insights/publications/2025/07/status-of-us-bilateral-trade-negotiations-as-the-deadline-approaches" class="citation-url" target="_blank">https://www.hklaw.com/en/insights/publications/2025/07/status-of-us-bilateral-trade-negotiations-as-the-deadline-approaches</a>
+            </div>
+            
+            <div class="citation-item" id="cite-6">
+                <span class="citation-number">6</span>
+                <div class="citation-title">Tariff Pause 2025: What Shippers Need to Know</div>
+                <div class="citation-source">Understanding “total landed cost” is key—especially when comparing potential new suppliers.
+
+What Happens After July 9?
+
+The end of the pause could trigger renewed tariff hikes. Prepare for multiple scenarios:
+
+Smart companies are building resilience now. That means flexible sourcing, strategic inventory buffers, and updated financial models. Programs like Foreign Trade Zones and bonded warehouses may also offer cost-saving relief.
+
+Final Thought – Don’t Navigate This Alone [...] Ocean Freight: Trans-Pacific spot rates have dropped significantly—down 40% year-over-year. But this may be temporary. With continued uncertainty and the threat of labor strikes, contract rates could spike again in 2025.
+
+Air Cargo: E-commerce now drives about 20% of airfreight—and rising tariffs are accelerating this trend. Expect rate hikes and congestion around key deadlines. Past tariff waves slowed air cargo growth, and a similar pattern could repeat post-pause. [...] 3. Move Inventory Fast   
+Shippers are rushing to move goods before tariffs potentially return. Ocean freight is busy, and air cargo demand is rising. If you haven’t started accelerating critical shipments, don’t wait—transport capacity could tighten fast, driving up costs.</div>
+                <a href="https://www.plslogistics.com/blog/tariff-pause-2025-what-shippers-need-to-know/" class="citation-url" target="_blank">https://www.plslogistics.com/blog/tariff-pause-2025-what-shippers-need-to-know/</a>
+            </div>
+            
+            <div class="citation-item" id="cite-7">
+                <span class="citation-number">7</span>
+                <div class="citation-title">Tariffs could surge on July 9 with 90-day pause set to ... - CBS News</div>
+                <div class="citation-source">Published Time: 2025-07-03T11:02:00-0400
+
+Tariffs could surge on July 9 with 90-day pause set to end. Here&#x27;s what experts think could happen. - CBS News
+
+===============
+
+
+
+   MoneyWatch
+   |
+   Managing Your Money
+   CBS News Price Tracker
+
+
+
+Watch CBS News
+
+MoneyWatch
+
+Tariffs could surge on July 9 with 90-day pause set to end. Here&#x27;s what experts think could happen.
+===================================================================================================
+
+Image 1: moneywatch
+
+ By [...] A90-day freezeon sweeping U.S. tariffs is set to expire on July 9, sowing economic uncertainty as the Trump administration works to revamp the terms of global trade.
+
+The stakes for millions of U.S. consumers and businesses are high. Economists warn that the barrage of import duties announced on April 2, which President Trump called &quot;Liberation Day,&quot; could trigger another bout of inflation, put smaller companies out of businesses and dent financial markets. [...] Although imposing sharply higher tariffs on dozens of countries could scare some investors and fuel concerns about higher prices in the U.S., extending the tariff freeze would prolong uncertainty for millions of U.S. businesses.</div>
+                <a href="https://www.cbsnews.com/news/tariffs-trump-china-vietnam-july-9/" class="citation-url" target="_blank">https://www.cbsnews.com/news/tariffs-trump-china-vietnam-july-9/</a>
+            </div>
+            
+            <div class="citation-item" id="cite-8">
+                <span class="citation-number">8</span>
+                <div class="citation-title">Trump&#x27;s July 9 tariff deadline is triggering market anxiety ... - Fortune</div>
+                <div class="citation-source">BYJason Ma June 30, 2025    
+   Image 18Economy 
+Top economist who previously sounded the alarm on tariffs sees a possible scenario where Trump ‘outsmarted all of us’
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- [...] BYJason Ma June 29, 2025    
+   Image 15Politics 
+Trump’s tariff pause expires next week. Here’s how well Asian governments have been doing in negotiations with Washington
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ [...] The 90-day pause on reciprocal tariffs is set to expire on July 9, and U.S. consumers and investors are left waiting in limbo as President Donald Trump negotiates deals with trade partners. Experts tell _Fortune_ Trump’s next moves could put his credibility in question, as he’s already walked back on previous tariff hikes after his “Liberation Day” announcement.</div>
+                <a href="https://fortune.com/2025/07/03/trump-tariff-deadline-trade-deals-inflation-business/" class="citation-url" target="_blank">https://fortune.com/2025/07/03/trump-tariff-deadline-trade-deals-inflation-business/</a>
+            </div>
+            
+            <p><em>Note: This analysis is generated using AI and should be used as a starting point for further research and validation. All scenarios and impacts should be verified against current market conditions and expert opinions.</em></p>
+        </div>
+    </div>
+</body>
+</html>
