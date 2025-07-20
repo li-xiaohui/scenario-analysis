@@ -42,8 +42,8 @@ def extract_graph_sections(data: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     return sections
 
 def create_network_graph(nodes: List[Dict], edges: List[Dict]) -> nx.Graph:
-    """Create a NetworkX graph from nodes and edges."""
-    G = nx.Graph()
+    """Create a NetworkX directed graph from nodes and edges."""
+    G = nx.DiGraph()
     node_ids = set()
     # Add nodes
     for node in nodes:
@@ -60,7 +60,7 @@ def create_network_graph(nodes: List[Dict], edges: List[Dict]) -> nx.Graph:
     return G
 
 def create_plotly_network_graph(G: nx.Graph) -> go.Figure:
-    """Create a Plotly network graph visualization."""
+    """Create a Plotly network graph visualization with arrows for directed edges."""
     # Calculate layout
     pos = nx.spring_layout(G, k=1, iterations=50)
     
@@ -76,7 +76,6 @@ def create_plotly_network_graph(G: nx.Graph) -> go.Figure:
         node_y.append(y)
         node_type = G.nodes[node].get('type', 'Unknown')
         node_text.append(f"{G.nodes[node]['label']}<br>Type: {node_type}")
-        
         # Color nodes by type
         if 'Valuation' in node_type or 'Method' in node_type:
             node_colors.append('#1f77b4')  # Blue
@@ -107,24 +106,58 @@ def create_plotly_network_graph(G: nx.Graph) -> go.Figure:
     # Create edge trace
     edge_x = []
     edge_y = []
-    edge_text = []
-    
+    edge_label_x = []
+    edge_label_y = []
+    edge_label_text = []
+    arrow_annotations = []
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
         x1, y1 = pos[edge[1]]
         edge_x.extend([x0, x1, None])
         edge_y.extend([y0, y1, None])
-        edge_text.append(G.edges[edge]['relation'])
-    
+        # For edge label
+        edge_label_x.append((x0 + x1) / 2)
+        edge_label_y.append((y0 + y1) / 2)
+        edge_label_text.append(G.edges[edge]['relation'])
+        # Offset arrow endpoint slightly towards the source to avoid overlap with node marker
+        dx = x1 - x0
+        dy = y1 - y0
+        length = (dx**2 + dy**2) ** 0.5
+        if length != 0:
+            offset = 0.08  # adjust this value for more/less offset
+            x1_arrow = x1 - dx * offset / length
+            y1_arrow = y1 - dy * offset / length
+        else:
+            x1_arrow, y1_arrow = x1, y1
+        # Add arrow annotation with improved visibility
+        arrow_annotations.append(dict(
+            x=x1_arrow, y=y1_arrow, ax=x0, ay=y0,
+            xref='x', yref='y', axref='x', ayref='y',
+            showarrow=True, arrowhead=2, arrowsize=2, arrowwidth=2, arrowcolor='#888',
+            standoff=5, opacity=0.9, text=' '
+        ))
+
     edge_trace = go.Scatter(
         x=edge_x, y=edge_y,
         line=dict(width=0.5, color='#888'),
         hoverinfo='none',
         mode='lines'
     )
-    
-    # Create figure
-    fig = go.Figure(data=[edge_trace, node_trace],
+
+    # Add edge label trace
+    edge_label_trace = go.Scatter(
+        x=edge_label_x,
+        y=edge_label_y,
+        mode='text',
+        text=edge_label_text,
+        textposition='top center',
+        hoverinfo='text',
+        showlegend=False,
+        textfont=dict(size=10, color='#444')
+    )
+
+    # Create figure with arrow annotations
+    fig = go.Figure(data=[edge_trace, node_trace, edge_label_trace],
                    layout=go.Layout(
                        title='Knowledge Graph Visualization',
                        showlegend=False,
@@ -132,9 +165,9 @@ def create_plotly_network_graph(G: nx.Graph) -> go.Figure:
                        margin=dict(b=20,l=5,r=5,t=40),
                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                       height=600
+                       height=600,
+                       annotations=arrow_annotations
                    ))
-    
     return fig
 
 def display_graph_statistics(G: nx.Graph):
