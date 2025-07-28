@@ -65,7 +65,7 @@ sample_kg = {
         {"source": "imported_prices", "target": "cpi", "relation": "affects", "sign": "+"},
         {"source": "domestic_prices", "target": "cpi", "relation": "affects", "sign": "+"},
         # Exchange rate, inflation_expectations, gdp also affect CPI
-        {"source": "exchange_rate", "target": "imported_prices", "relation": "affects", "sign": "+/-"},
+
         {"source": "inflation_expectations", "target": "cpi", "relation": "affects", "sign": "+"},
         {"source": "gdp", "target": "cpi", "relation": "affects", "sign": "+"},
         # inflation measured by CPI

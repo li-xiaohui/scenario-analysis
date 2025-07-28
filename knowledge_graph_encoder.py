@@ -1,4 +1,6 @@
 # knowledge_graph_encoder.py
+from pprint import pprint
+from collections import deque
 
 class MonetaryPolicy:
     def __init__(self, instruments, targets, channels):
@@ -250,6 +252,116 @@ def all_traces_between(kg, source_node, desti_node, max_depth=8, topk=3):
             print(f"Path {i+1}: {label_path} (net effect: {net_sign})")
     return results
 
+def make_scenario(kg, source_node=None, desti_node=None, max_depth=8, topk=10, direction=None, out_fname=None):
+    """
+    Print all possible paths from source_node to SPX/UST, or all paths to desti_node.
+    If only source_node is given, finds all paths from source_node to 'SPX' or 'UST'.
+    If only desti_node is given, finds all paths from any node to desti_node.
+    Handles loops by limiting path length with max_depth.
+    direction: "higher" or "lower" - only show paths with net effect up (↑) or down (↓)
+    Shows up/down arrow next to each node.
+    Prints total count of filtered paths.
+    If out_fname is provided, writes all filtered paths to the file.
+    """
+    node_labels = {n["id"]: n["label"] for n in kg["nodes"]}
+    targets = {"SPX", "UST"} if desti_node is None else {desti_node}
+    results = []
+
+    def get_arrow(sign):
+        return "↑" if sign == "+" else "↓"
+
+    # Helper to get all paths with sign propagation
+    def all_paths_with_signs(start, targets, max_depth):
+        stack = [(start, [start], [])]  # (node, path, signs)
+        paths = []
+        while stack:
+            node, path, signs = stack.pop()
+            if node in targets and node != start:
+                paths.append((list(path), list(signs)))
+                continue
+            if len(path) > max_depth:
+                continue
+            for edge in kg["edges"]:
+                if edge["source"] == node and edge["target"] not in path:
+                    edge_sign = edge["sign"]
+                    if not signs:
+                        # First edge
+                        if edge_sign == "+/-":
+                            stack.append((edge["target"], path + [edge["target"]], signs + ["+"]))
+                            stack.append((edge["target"], path + [edge["target"]], signs + ["-"]))
+                        else:
+                            stack.append((edge["target"], path + [edge["target"]], signs + [edge_sign]))
+                    else:
+                        prev = signs[-1]
+                        if edge_sign == "+/-":
+                            stack.append((edge["target"], path + [edge["target"]], signs + ["+"]))
+                            stack.append((edge["target"], path + [edge["target"]], signs + ["-"]))
+                        else:
+                            # Propagate sign
+                            if prev == "+":
+                                next_sign = edge_sign
+                            elif prev == "-":
+                                next_sign = "+" if edge_sign == "-" else "-"
+                            else:
+                                next_sign = edge_sign
+                            stack.append((edge["target"], path + [edge["target"]], signs + [next_sign]))
+        return paths
+
+    if source_node:
+        all_paths = all_paths_with_signs(source_node, targets, max_depth)
+    elif desti_node:
+        all_paths = []
+        for start in [n["id"] for n in kg["nodes"] if n["id"] != desti_node]:
+            all_paths.extend(all_paths_with_signs(start, {desti_node}, max_depth))
+    else:
+        print("Please provide either a source_node or desti_node.")
+        return
+
+    # Filter by direction if specified
+    filtered_paths = []
+    for path, signs in all_paths:
+        if not signs:
+            continue
+        net_sign = signs[-1]
+        if direction and direction.lower() == "higher" and net_sign != "+":
+            continue
+        if direction and direction.lower() == "lower" and net_sign != "-":
+            continue
+        filtered_paths.append((path, signs))
+
+    # Print results
+    for i, (path, signs) in enumerate(filtered_paths[:topk]):
+        label_path = []
+        for idx, n in enumerate(path):
+            if idx == 0:
+                label_path.append(node_labels[n])
+            else:
+                arrow = get_arrow(signs[idx-1])
+                label_path.append(f"{node_labels[n]} ({arrow})")
+        print(f"Path {i+1}: {' → '.join(label_path)}")
+    print(f"Total paths: {len(filtered_paths)}")
+    if not filtered_paths:
+        print("No paths found.")
+
+    # Write all filtered paths to file if requested
+    if out_fname:
+        try:
+            with open(out_fname, "w", encoding="utf-8") as f:
+                for i, (path, signs) in enumerate(filtered_paths):
+                    label_path = []
+                    for idx, n in enumerate(path):
+                        if idx == 0:
+                            label_path.append(node_labels[n])
+                        else:
+                            arrow = get_arrow(signs[idx-1])
+                            label_path.append(f"{node_labels[n]} ({arrow})")
+                    f.write(f"Path {i+1}: {' → '.join(label_path)}\n")
+                f.write(f"Total paths: {len(filtered_paths)}\n")
+        except Exception as e:
+            print(f"Failed to write paths to {out_fname}: {e}")
+
+    return filtered_paths
+
 # --- New: Pyvis visualization with legend ---
 def plot_pyvis_transmission(kg, paths, output_html="transmission_pyvis.html"):
     """
@@ -337,17 +449,22 @@ def plot_pyvis_transmission(kg, paths, output_html="transmission_pyvis.html"):
         print(f"Could not inject legend: {e}")
     print(f"Pyvis interactive graph saved to {output_html}")
 
+
+
+
 if __name__ == "__main__":
     print("\n--- Structured KG ---")
-    from pprint import pprint
+    
     # pprint(sample_kg)
     # print("\n--- Textual KG ---")
     # print(kg_to_text(sample_kg))
     
     
     print("\n--- All Traces: Policy to Inflation (Pyvis) ---")
-    # paths = all_traces_between(sample_kg, "inflation_expectations", "inflation")    
-    paths = all_traces_between(sample_kg, "supply_shock", "inflation", topk=5)
+    # paths = all_traces_between(sample_kg, "inflation_expectations", "inflation")
+
+    ## print first 3 paths with labels and net sign
+    # paths = all_traces_between(sample_kg, "supply_shock", "inflation", topk=5)
 
     # Print first 3 paths with labels and net sign
     # node_labels = {n["id"]: n["label"] for n in sample_kg["nodes"]}
@@ -355,4 +472,6 @@ if __name__ == "__main__":
     #     label_path = " → ".join(node_labels[n] for n in path)
     #     print(f"Path {i+1}: {label_path} (net effect: {'↑' if sign == '+' else '↓' if sign == '-' else sign})")
     
+    paths = make_scenario(sample_kg,desti_node="inflation", max_depth=8, topk=10, direction="higher", 
+                          out_fname="inflation_paths.txt")
     plot_pyvis_transmission(sample_kg, paths, output_html="inflation_expectation_to_inflation.html")
