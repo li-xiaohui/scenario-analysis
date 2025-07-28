@@ -99,8 +99,6 @@ except ImportError:
     nx = None
     plt = None
 
-# Remove pyvis import and HTML export function
-
 def plot_transmission_graph(kg, start_node=None, highlight_paths=None, save_path=None):
     """
     Plot the knowledge graph using networkx and matplotlib.
@@ -190,38 +188,73 @@ def get_transmission_paths(kg, start_node, shock_direction):
                     next_sign = sign if edge_sign == "+" else ('-' if sign == '+' else '+')
                     queue.append((edge["target"], path + [edge["target"]], next_sign))
     return results
-
-# --- New: Find all traces between two nodes ---
-def all_traces_between(kg, source_node, desti_node, max_depth=8):
+# --- New: Find all traces between two nodes, showing up/down arrows for each node ---
+def all_traces_between(kg, source_node, desti_node, max_depth=8, topk=3):
     """
-    Return all possible traces (paths) from source_node to desti_node, with their net sign.
+    Return all possible traces (paths) from source_node to desti_node, with their net sign and per-node effect.
     Uses DFS up to max_depth to avoid infinite cycles.
-    Returns: list of (path, net_sign)
+    Returns: list of (path_with_arrows, net_sign), where path_with_arrows is a list of "NodeLabel (arrow)".
+    If topk is provided, only print the topk paths.
     """
     results = []
-    stack = [(source_node, [source_node], None)]  # (current, path, current_sign)
+    stack = [(source_node, [source_node], [])]  # (current, path, list of signs)
+    node_labels = {n["id"]: n["label"] for n in kg["nodes"]}
     while stack:
-        node, path, sign = stack.pop()
+        node, path, signs = stack.pop()
         if node == desti_node and node != source_node:
-            results.append((path, sign))
+            # Attach arrows to each node label except the first (source)
+            path_with_arrows = []
+            for i, n in enumerate(path):
+                if i == 0:
+                    path_with_arrows.append(node_labels[n])
+                else:
+                    arrow = signs[i-1] if i-1 < len(signs) else ""
+                    path_with_arrows.append(f"{node_labels[n]} ({arrow})")
+            # Net sign is the last arrow in the path
+            net_sign = signs[-1] if signs else ""
+            results.append((path_with_arrows, net_sign))
+            if topk is not None and len(results) >= topk:
+                break
             continue
         if len(path) > max_depth:
             continue
         for edge in kg["edges"]:
             if edge["source"] == node:
                 edge_sign = edge["sign"]
-                if edge_sign == "+/-":
-                    stack.append((edge["target"], path + [edge["target"]], '+'))
-                    stack.append((edge["target"], path + [edge["target"]], '-'))
+                # Determine next possible sign(s) and arrow(s)
+                if not signs:
+                    # First edge: use edge sign
+                    if edge_sign == "+/-":
+                        stack.append((edge["target"], path + [edge["target"]], signs + ['↑']))
+                        stack.append((edge["target"], path + [edge["target"]], signs + ['↓']))
+                    else:
+                        arrow = '↑' if edge_sign == '+' else '↓'
+                        stack.append((edge["target"], path + [edge["target"]], signs + [arrow]))
                 else:
-                    next_sign = sign if sign is not None and edge_sign == "+" else ('-' if sign == '+' and edge_sign == '-' else ('+' if sign == '-' and edge_sign == '-' else edge_sign))
-                    stack.append((edge["target"], path + [edge["target"]], next_sign))
+                    prev = signs[-1]
+                    if edge_sign == "+/-":
+                        stack.append((edge["target"], path + [edge["target"]], signs + ['↑']))
+                        stack.append((edge["target"], path + [edge["target"]], signs + ['↓']))
+                    else:
+                        if prev == '↑':
+                            arrow = '↑' if edge_sign == '+' else '↓'
+                        elif prev == '↓':
+                            arrow = '↓' if edge_sign == '+' else '↑'
+                        else:
+                            arrow = prev  # fallback
+                        stack.append((edge["target"], path + [edge["target"]], signs + [arrow]))
+    # Print topk paths if requested
+    if topk is not None:
+        for i, (path_with_arrows, net_sign) in enumerate(results[:topk]):
+            label_path = " → ".join(path_with_arrows)
+            print(f"Path {i+1}: {label_path} (net effect: {net_sign})")
     return results
 
-# --- New: Pyvis visualization ---
+# --- New: Pyvis visualization with legend ---
 def plot_pyvis_transmission(kg, paths, output_html="transmission_pyvis.html"):
     """
     Plot the knowledge graph using pyvis, highlighting the given paths.
+    Displays a legend for node types and edge signs.
     paths: list of (path, sign)
     output_html: file to save the interactive visualization
     """
@@ -232,52 +265,94 @@ def plot_pyvis_transmission(kg, paths, output_html="transmission_pyvis.html"):
         return
     node_labels = {n["id"]: n["label"] for n in kg["nodes"]}
     node_types = {n["id"]: n.get("type", "METRIC") for n in kg["nodes"]}
-    type_color = {"ORG": "#a259f7", "RATE": "#4f8cff", "ASSET": "#ffb347", "METRIC": "#7be495", "POLICY": "#f7b7a3", "MEASURE": "#f7e3af", "SHOCK": "#f76e6e", "EVENT": "#b2a4ff", "ACTION": "#f9f871"}
+    type_color = {
+        "ORG": "#a259f7", "RATE": "#4f8cff", "ASSET": "#ffb347", "METRIC": "#7be495",
+        "POLICY": "#f7b7a3", "MEASURE": "#f7e3af", "SHOCK": "#f76e6e", "EVENT": "#b2a4ff", "ACTION": "#f9f871"
+    }
+    edge_color = {
+        "+": "#7be495",    # green
+        "-": "#f76e6e",    # red
+        "+/-": "#4f8cff",  # blue
+        "highlight": "#ffa500"  # orange (not used for color now)
+    }
     net = Network(height="800px", width="100%", directed=True, notebook=False)
+    # Determine which nodes are in highlighted paths
+    highlight_nodes = set()
+    highlight_edges = set()
+    for path, sign in paths:
+        for i in range(len(path)):
+            highlight_nodes.add(path[i])
+        for i in range(len(path)-1):
+            highlight_edges.add((path[i], path[i+1]))
     # Add nodes
     for node in kg["nodes"]:
         color = type_color.get(node.get("type", "METRIC"), "#cccccc")
-        net.add_node(node["id"], label=node["label"], color=color)
+        if node["id"] in highlight_nodes:
+            label = f"{node['label']}"
+            font = {"size": 14, "bold": True}
+        else:
+            label = node["label"]
+            font = {"size": 14}
+        net.add_node(node["id"], label=label, color=color, font=font)
     # Add edges
     for edge in kg["edges"]:
-        color = "#7be495" if edge["sign"] == "+" else ("#f76e6e" if edge["sign"] == "-" else ("#4f8cff" if edge["sign"] == "+/-" else "#cccccc"))
-        net.add_edge(edge["source"], edge["target"], color=color, arrows="to")
-    # Highlight paths
-    highlight_edges = set()
-    for path, sign in paths:
-        for i in range(len(path)-1):
-            highlight_edges.add((path[i], path[i+1]))
-    for edge in net.edges:
-        if (edge["from"], edge["to"]) in highlight_edges:
-            edge["color"] = "#ffa500"
-            edge["width"] = 4
+        color = edge_color.get(edge["sign"], "#cccccc")
+        width = 8 if (edge["source"], edge["target"]) in highlight_edges else 2
+        net.add_edge(edge["source"], edge["target"], color=color, arrows="to", width=width)
+    # Add legend as a fixed HTML box
+    legend_html = """
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 9999; background: white; border: 1px solid #ccc; border-radius: 8px; padding: 12px; font-size: 14px; box-shadow: 2px 2px 8px #aaa;">
+        <b>Legend</b><br>
+        <u>Node Types</u><br>
+        <span style="display:inline-block;width:12px;height:12px;background:#a259f7;border-radius:3px;margin-right:4px;"></span>ORG<br>
+        <span style="display:inline-block;width:12px;height:12px;background:#4f8cff;border-radius:3px;margin-right:4px;"></span>RATE<br>
+        <span style="display:inline-block;width:12px;height:12px;background:#ffb347;border-radius:3px;margin-right:4px;"></span>ASSET<br>
+        <span style="display:inline-block;width:12px;height:12px;background:#7be495;border-radius:3px;margin-right:4px;"></span>METRIC<br>
+        <span style="display:inline-block;width:12px;height:12px;background:#f7b7a3;border-radius:3px;margin-right:4px;"></span>POLICY<br>
+        <span style="display:inline-block;width:12px;height:12px;background:#f7e3af;border-radius:3px;margin-right:4px;"></span>MEASURE<br>
+        <span style="display:inline-block;width:12px;height:12px;background:#f76e6e;border-radius:3px;margin-right:4px;"></span>SHOCK<br>
+        <span style="display:inline-block;width:12px;height:12px;background:#b2a4ff;border-radius:3px;margin-right:4px;"></span>EVENT<br>
+        <span style="display:inline-block;width:12px;height:12px;background:#f9f871;border-radius:3px;margin-right:4px;"></span>ACTION<br>
+        <u>Edge Signs</u><br>
+        <span style="display:inline-block;width:18px;height:4px;background:#7be495;margin-right:4px;"></span>Positive (+)<br>
+        <span style="display:inline-block;width:18px;height:4px;background:#f76e6e;margin-right:4px;"></span>Negative (-)<br>
+        <span style="display:inline-block;width:18px;height:4px;background:#4f8cff;margin-right:4px;"></span>Positve/Negative (+/-)<br>
+        <span style="display:inline-block;width:18px;height:4px;background:#000;margin-right:4px;border:2px solid #ffa500;"></span>Highlighted Path (bold)<br>
+        <span style="font-weight:bold;">Bold label</span>: Node in highlighted path
+    </div>
+    """
     net.show_buttons(filter_=['physics'])
-    net.show(output_html, notebook=False)
+    net.save_graph(output_html)
+    # Inject legend into the saved HTML
+    try:
+        with open(output_html, "r", encoding="utf-8") as f:
+            html = f.read()
+        if "</body>" in html:
+            html = html.replace("</body>", legend_html + "\n</body>")
+        else:
+            html += legend_html
+        with open(output_html, "w", encoding="utf-8") as f:
+            f.write(html)
+    except Exception as e:
+        print(f"Could not inject legend: {e}")
     print(f"Pyvis interactive graph saved to {output_html}")
 
 if __name__ == "__main__":
     print("\n--- Structured KG ---")
     from pprint import pprint
-    pprint(sample_kg)
-    print("\n--- Textual KG ---")
-    print(kg_to_text(sample_kg))
-    print("\n--- Transmission Steps: Expansionary Fiscal/Monetary Policy Increase ---")
-    trace_transmission(sample_kg, start_node="accommodative_policy", shock_direction='+')
-    print("\n--- Transmission Steps: Expansionary Fiscal/Monetary Policy Decrease ---")
-    trace_transmission(sample_kg, start_node="accommodative_policy", shock_direction='-')
+    # pprint(sample_kg)
+    # print("\n--- Textual KG ---")
+    # print(kg_to_text(sample_kg))
+    
+    
+    print("\n--- All Traces: Policy to Inflation (Pyvis) ---")
+    # paths = all_traces_between(sample_kg, "inflation_expectations", "inflation")    
+    paths = all_traces_between(sample_kg, "supply_shock", "inflation", topk=5)
 
-    # Plot the graph and highlight transmission paths for expansionary policy increase
-    print("\n--- Plotting Transmission Graph (Expansionary Policy Increase) ---")
-    paths_plus = get_transmission_paths(sample_kg, start_node="accommodative_policy", shock_direction='+')
-    plot_transmission_graph(sample_kg, start_node="accommodative_policy", highlight_paths=paths_plus, save_path="transmission_graph.png")
-
-    # Example: Find and plot all traces from accommodative_policy to inflation
-    print("\n--- All Traces: Accommodative Policy to Inflation (Pyvis) ---")
-    paths = all_traces_between(sample_kg, "accommodative_policy", "inflation")
-    print(f"Found {len(paths)} paths from accommodative_policy to inflation.")
     # Print first 3 paths with labels and net sign
-    node_labels = {n["id"]: n["label"] for n in sample_kg["nodes"]}
-    for i, (path, sign) in enumerate(paths[:3]):
-        label_path = " → ".join(node_labels[n] for n in path)
-        print(f"Path {i+1}: {label_path} (net effect: {'↑' if sign == '+' else '↓' if sign == '-' else sign})")
-    plot_pyvis_transmission(sample_kg, paths, output_html="accommodative_to_inflation.html")
+    # node_labels = {n["id"]: n["label"] for n in sample_kg["nodes"]}
+    # for i, (path, sign) in enumerate(paths[:3]):
+    #     label_path = " → ".join(node_labels[n] for n in path)
+    #     print(f"Path {i+1}: {label_path} (net effect: {'↑' if sign == '+' else '↓' if sign == '-' else sign})")
+    
+    plot_pyvis_transmission(sample_kg, paths, output_html="inflation_expectation_to_inflation.html")
