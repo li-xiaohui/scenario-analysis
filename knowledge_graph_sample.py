@@ -72,6 +72,8 @@ sample_kg = {
         {"source": "cpi", "target": "inflation", "relation": "measures", "sign": "+"},
         {"source": "inflation", "target": "the_fed", "relation": "affects", "sign": "+/-"},
         {"source": "unemployment_rate", "target": "the_fed", "relation": "affects", "sign": "+/-"},
+        {"source": "government", "target": "the_fed", "relation": "affects", "sign": "+/-"},
+        {"source": "debt_servicing_costs", "target": "government", "relation": "affects", "sign": "+/-"},
 
         # Inflation and deflation affect inflation_expectations
         {"source": "inflation", "target": "inflation_expectations", "relation": "affects", "sign": "+"},
