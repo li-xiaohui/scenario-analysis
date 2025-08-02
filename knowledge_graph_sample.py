@@ -25,7 +25,6 @@ sample_kg = {
         {"id": "debt_servicing_costs", "label": "Debt Servicing Costs", "type": "METRIC"},
         {"id": "unemployment_rate", "label": "Unemployment Rate", "type": "METRIC"},
     
-        {"id": "credit_demand", "label": "Credit Demand", "type": "METRIC"},
         {"id": "demand", "label": "Aggregate Demand", "type": "METRIC"},
         {"id": "supply", "label": "Aggregate Supply", "type": "METRIC"},
         {"id": "supply_demand_imbalance", "label": "Supply-Demand Imbalance", "type": "METRIC"},
@@ -33,14 +32,12 @@ sample_kg = {
         {"id": "national_debt", "label": "National Debt", "type": "METRIC"},
         {"id": "behavior_change", "label": "Behavior Change (Price/Wage Decisions)", "type": "ACTION"},
         {"id": "central_bank_credibility", "label": "Central Bank Credibility", "type": "METRIC"},
-        {"id": "confidence_in_central_bank", "label": "Confidence in Central Bank", "type": "METRIC"},
         {"id": "supply_shock", "label": "Supply-Side Shock", "type": "EVENT"},
+        {"id": "energy", "label": "Energy Price", "type": "EVENT"},
         {"id": "costs_of_goods_services", "label": "Costs of Goods and Services", "type": "METRIC"},
-        {"id": "production", "label": "Production/Distribution", "type": "METRIC"},
         {"id": "tariff", "label": "Tariffs", "type": "EVENT"},
-        {"id": "global_trade", "label": "Global Trade", "type": "METRIC"},
-        {"id": "sentiment", "label": "Global Sentiment", "type": "METRIC"},
-       
+        {"id": "climate_adaptation", "label": "Climate Adaptation", "type": "METRIC"},
+        
     ],
     "edges": [
         # Central Bank Chain
@@ -84,7 +81,6 @@ sample_kg = {
         {"source": "monetary_policy", "target": "policy_rate", "relation": "sets", "sign": "+/-"},
         {"source": "liquidity", "target": "borrowing_spending", "relation": "increases", "sign": "+"},
         {"source": "policy_rate", "target": "borrowing_spending", "relation": "increases", "sign": "-"},
-        {"source": "borrowing_spending", "target": "credit_demand", "relation": "increases", "sign": "+"},
         
         
         # --- Demand-Supply Imbalance Chain ---
@@ -93,6 +89,7 @@ sample_kg = {
         {"source": "supply", "target": "supply_demand_imbalance", "relation": "strains_imbalance", "sign": "-"},
         {"source": "supply_demand_imbalance", "target": "inflation", "relation": "increases_risk", "sign": "+"},
         # --- Fiscal Policy Chain ---
+        {"source": "climate_adaptation", "target": "national_debt", "relation": "affects", "sign": "+"},
         {"source": "fiscal_policy", "target": "national_debt", "relation": "affects", "sign": "+/-"},
         {"source": "fiscal_policy", "target": "borrowing_spending", "relation": "affects", "sign": "+/-"},
         
@@ -103,16 +100,14 @@ sample_kg = {
         {"source": "inflation_expectations", "target": "behavior_change", "relation": "drives", "sign": "+"},
         {"source": "behavior_change", "target": "inflation", "relation": "reinforces", "sign": "+"},
         # --- Credibility Feedback Loop ---
-        
-        {"source": "confidence_in_central_bank", "target": "central_bank_credibility", "relation": "increases", "sign": "+"},
+
         {"source": "central_bank_credibility", "target": "inflation", "relation": "reduce", "sign": "-"},
         # --- Supply Shock Chain ---
+        {"source": "energy", "target": "costs_of_goods_services", "relation": "increases", "sign": "+"},
         {"source": "supply_shock", "target": "costs_of_goods_services", "relation": "increases", "sign": "+"},
         {"source": "costs_of_goods_services", "target": "cpi", "relation": "increases", "sign": "+"},
         
         # --- Geopolitical Risk Chain ---
-        {"source": "tariff", "target": "global_trade", "relation": "depresses", "sign": "-"},
-        {"source": "tariff", "target": "sentiment", "relation": "hurts", "sign": "-"},
         {"source": "tariff", "target": "costs_of_goods_services", "relation": "increases", "sign": "+"},
 
         # ---- government bonds ----

@@ -16,6 +16,7 @@ This system implements a three-node workflow for scenario analysis:
 - **Multi-source Research**: Uses Tavily search for real-time information gathering
 - **Structured Analysis**: Provides detailed asset impact and causal relationship analysis
 - **Top Scenario Selection**: Automatically selects the 2 most important scenarios for detailed analysis
+- **Knowledge graph encoder**: Knowledge graph encoded in `knowledge_graph_sample.py` and can be visualized with `knowledge_graph_encoder.py`. Then use company laptop to generate narrative.
 
 ## Setup
 
